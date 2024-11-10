@@ -17,7 +17,8 @@ public class MultiThreadDownloaderApp {
 
         String[] sources = {
                 "https://ash-speed.hetzner.com/100MB.bin",
-                "https://ash-speed.hetzner.com/1GB.bin"
+                "https://ash-speed.hetzner.com/1GB.bin",
+                "https://raw.githubusercontent.com/mguludag/book-1/refs/heads/master/%5BJAVA%5D%5BJava%20Network%20Programming%2C%204th%20Edition%5D.pdf"
         };
 
         Terminal terminal = new DefaultTerminalFactory().createTerminal();
