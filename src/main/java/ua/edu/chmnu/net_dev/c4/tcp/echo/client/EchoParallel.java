@@ -8,77 +8,77 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Random;
-import java.util.Scanner;
 
-public class EchoParallel {
+public class EchoParallel implements Runnable {
     private final static int DEFAULT_PORT = 6710;
+    private final EndPoint endPoint;
+    private final String nickname;
 
-    public static String generateCharacters() {
+    public EchoParallel(EndPoint endPoint, String nickname) {
+        this.endPoint = endPoint;
+        this.nickname = nickname;
+    }
+
+    private static String generateCharacters() {
         int leftLimit = 97; // letter 'a'
         int rightLimit = 122; // letter 'z'
         int targetStringLength = 10;
         Random random = new Random();
 
-        String generatedString = random.ints(leftLimit, rightLimit + 1)
+        return random.ints(leftLimit, rightLimit + 1)
                 .limit(targetStringLength)
                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                 .toString();
-
-        return generatedString;
     }
 
-    public static void main(String[] args) throws IOException {
+    @Override
+    public void run() {
+        try (Socket clientSocket = new Socket(endPoint.getHost(), endPoint.getPort());
+             PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
 
-        EndPoint endPoint;
+            System.out.println("[" + nickname + "] Connected to server at " + endPoint.getHost() + ":" + endPoint.getPort());
 
-        if (args.length > 0) {
-            endPoint = new EndPoint(args[0]);
-        } else {
-            endPoint = new EndPoint("localhost", DEFAULT_PORT);
-        }
+            // Send nickname to the server
+            writer.println(nickname);
 
-        try(Socket clientSocket = new Socket(endPoint.getHost(), endPoint.getPort())) {
+            while (!clientSocket.isClosed()) {
+                // Record the start time
+                long startTime = System.nanoTime();
+                for (int i = 0; i < 5; i++) { // Sends 5 messages
+                    String line = generateCharacters();
 
-            System.out.println("Establish connection to " + endPoint.getHost() + ":" + endPoint.getPort());
 
-            try (
-                    var scanner = new Scanner(System.in);
-                    var writer = new PrintWriter(clientSocket.getOutputStream(), true);
-                    var reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))
-            ) {
-                String promptNick = reader.readLine();
-
-                System.out.print(promptNick);
-
-                var nick = scanner.nextLine();
-
-                writer.println(nick);
-
-                while (!clientSocket.isClosed()) {
-                    String promptData = reader.readLine();
-
-                    System.out.print(promptData);
-                    var line = generateCharacters();
-                    //try {
-                    //    Thread.sleep(3000);
-                    //} catch (InterruptedException e) {
-                    //    Thread.currentThread().interrupt();
-                    //}
-                   //line = scanner.nextLine();
-                   //if (line.equalsIgnoreCase("Q")) {
-                   //    System.out.println("Done client!");
-                   //    break;
-                   //}
 
                     writer.println(line);
-                    System.out.println("");
-                    System.out.println("Waiting for response...");
+                    System.out.println("[" + nickname + "] Sent: " + line);
 
-                    line = reader.readLine();
+                    String response = reader.readLine();
 
-                    System.out.println("Received response: " + line);
+                    // Record the end time
+
+
+                    System.out.println("[" + nickname + "] Received: " + response);
+
+
+                    Thread.sleep(1000); // Simulate client activity delay
                 }
+                    String line = "Q";
+                if (line.equalsIgnoreCase("Q")) {
+                    System.out.println("Done client!");
+                    System.out.println("[" + nickname + "] Sent: Quit (disconnect request)");
+                    long endTime = System.nanoTime();
+                    long duration = (endTime - startTime) / 1_000_000_000; // Convert to milliseconds
+                    System.out.println("[" + nickname + "] Processing time: " + duration + " s");
+                    break;
+                }
+                // Send "Q" to indicate the client wants to exit
+
+
             }
+
+        } catch (IOException | InterruptedException e) {
+            System.err.println("[" + nickname + "] Connection error: " + e.getMessage());
         }
     }
 }
